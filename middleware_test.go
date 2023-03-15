@@ -1,7 +1,7 @@
 //go:build unit
 // +build unit
 
-package main_test
+package httpmiddleware_test
 
 import (
 	"testing"
@@ -14,5 +14,5 @@ import (
 func TestNewMiddleware(t *testing.T) {
 	l := logrus.New()
 	router := httprouter.New()
-	m := httpmiddleware.New(l, router)
+	_ = httpmiddleware.New(l, router)
 }

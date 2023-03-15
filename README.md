@@ -1,6 +1,6 @@
 ## Why create this project?
 
-It is very common create microservices that use HTTP protocol on communication layer, this way we have a lot of projects which one with one different HTTP server implementantion and a lot of duplication code between projects. 
+It is very common create microservices that use HTTP protocol on communication layer, this way we have a lot of projects which one with a different HTTP server implementantion and a lot of duplication code between projects. 
 
 
 ## What is this project?

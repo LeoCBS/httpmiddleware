@@ -1,4 +1,4 @@
-package main
+package httpmiddleware
 
 import (
 	"net/http"
@@ -7,10 +7,10 @@ import (
 )
 
 type Log interface {
-	Info(message string, args ...interface{})
-	Debug(message string, args ...interface{})
-	Warn(message string, args ...interface{})
-	Error(message string, args ...interface{})
+	Info(args ...interface{})
+	Debug(args ...interface{})
+	Warn(args ...interface{})
+	Error(args ...interface{})
 }
 
 type Middleware struct {
