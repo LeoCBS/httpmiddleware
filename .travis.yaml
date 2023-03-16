@@ -1,0 +1,13 @@
+language: go
+sudo: required
+
+services:
+  - docker
+
+go:
+  - "1.20"
+script:
+  - make check
+notifications:
+  email:
+    - leocborgess@gmail.com
