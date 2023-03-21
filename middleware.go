@@ -38,14 +38,16 @@ func New(l Log) *Middleware {
 	}
 }
 
-type response struct {
+type Response struct {
 	body       interface{}
 	statusCode int
 	err        error
 	headers    map[string]string
 }
 
-type routerHandlerFunc func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) response
+type Params httprouter.Params
+
+type routerHandlerFunc func(w http.ResponseWriter, r *http.Request, ps Params) Response
 
 func (m *Middleware) POST(path string, handler routerHandlerFunc) {
 	m.router.POST(path, m.handle(handler))
@@ -53,11 +55,12 @@ func (m *Middleware) POST(path string, handler routerHandlerFunc) {
 
 func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if badRequestResp := isInvalidURLParams(ps); badRequestResp.statusCode != 0 {
+		httpRouterParams := convertParams(ps)
+		if badRequestResp := isInvalidURLParams(httpRouterParams); badRequestResp.statusCode != 0 {
 			m.writeResponse(w, badRequestResp)
 			return
 		}
-		resp := next(w, r, ps)
+		resp := next(w, r, httpRouterParams)
 		for k, v := range resp.headers {
 			w.Header().Set(k, v)
 		}
@@ -81,10 +84,22 @@ func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 	}
 }
 
-func isInvalidURLParams(ps httprouter.Params) response {
+func convertParams(customParams Params) httprouter.Params {
+	params := httprouter.Params{}
+	for k, v := range customParams {
+		params := append(params, httprouter.Param{
+			Key:   key,
+			Value: v,
+		})
+	}
+	return params
+
+}
+
+func isInvalidURLParams(ps Params) Response {
 	for _, p := range ps {
 		if p.Value == "" {
-			return response{
+			return Response{
 				statusCode: http.StatusBadRequest,
 				body: map[string]interface{}{
 					"error": fmt.Sprintf("your URL must inform %s value", p.Key),
@@ -92,10 +107,10 @@ func isInvalidURLParams(ps httprouter.Params) response {
 			}
 		}
 	}
-	return response{}
+	return Response{}
 }
 
-func (m *Middleware) writeResponse(w http.ResponseWriter, resp response) {
+func (m *Middleware) writeResponse(w http.ResponseWriter, resp Response) {
 	w.WriteHeader(resp.statusCode)
 	if resp.body != nil {
 		err := json.NewEncoder(w).Encode(resp.body)
@@ -120,7 +135,7 @@ func getClientErrorBody(errStr string) map[string]interface{} {
 func (m *Middleware) writeClientResponse(
 	e error,
 	w http.ResponseWriter,
-	resp response,
+	resp Response,
 	statusCode int,
 ) {
 	m.l.Warn("client error / error = %v", e)

@@ -20,6 +20,10 @@ func TestNewMiddlewareValidateURLParams(t *testing.T) {
 	l := logrus.New()
 	md := httpmiddleware.New(l)
 	assertNotNil(t, md)
+	// key/value URL pattern
+	md.POST("/name/:name", h.createField)
+
+	fnHandlePOST := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {}
 }
 
 func assertNotNil(t *testing.T, value interface{}) {
