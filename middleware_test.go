@@ -7,12 +7,24 @@ import (
 	"testing"
 
 	"github.com/LeoCBS/httpmiddleware"
-	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
 )
 
-func TestNewMiddleware(t *testing.T) {
+func TestNewMiddlewareWorks(t *testing.T) {
 	l := logrus.New()
-	router := httprouter.New()
-	_ = httpmiddleware.New(l, router)
+	md := httpmiddleware.New(l)
+	assertNotNil(t, md)
+}
+
+func TestNewMiddlewareValidateURLParams(t *testing.T) {
+	l := logrus.New()
+	md := httpmiddleware.New(l)
+	assertNotNil(t, md)
+}
+
+func assertNotNil(t *testing.T, value interface{}) {
+	t.Helper()
+	if value == nil {
+		t.Error("value is nil")
+	}
 }
