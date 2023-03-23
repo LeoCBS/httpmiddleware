@@ -21,7 +21,7 @@ What this project try abstract:
 
 If you already try create a HTTP server and your routes using builtin `http` package, you must realized how costly it is to address requests,
 parse URLs values and make basic validation like check HTTP methods. Having it in mind, we choose to use
-the lib (julienschmidt/httprouter)[https://github.com/julienschmidt/httprouter] as default HTTP router. Below is an example ilustrating how is
+the lib [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) as default HTTP router. Below is an example ilustrating how is
 simple to define one new route:   
 
 * Declaring a POST
