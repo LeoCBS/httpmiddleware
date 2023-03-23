@@ -13,6 +13,35 @@ What this project try abstract:
  * Request validations
  * Error handler
  * Write responses
+ * Gracefull shutdown
+
+### HTTP routes declaration
+
+If you already try create a HTTP server and your routes using builtin `http` package, you must realized how costly it is to address requests,
+parse URLs values and make basic validation like check HTTP methods. Having it in mind, we choose to use
+the lib (julienschmidt/httprouter)[https://github.com/julienschmidt/httprouter] as default HTTP router. Below is an example ilustrating how is
+simple to define one new route:   
+
+* Declaring a POST
+
+```golang
+	//register a simple route POST using key/value URL pattern
+	md.POST("/name/:name/age/:age", fnHandlePOST)
+```
+
+
+* Declaring a POST and your handler
+
+```golang
+	fnHandlePOST := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+		// here you will add your business logic, call some storage func, etc...
+		return httpmiddleware.Response{
+			StatusCode: http.StatusOK,
+		}
+	}
+	//register a simple route POST using key/value URL pattern
+	md.POST("/name/:name/age/:age", fnHandlePOST)
+```
 
 ## How use this middleware?
 
