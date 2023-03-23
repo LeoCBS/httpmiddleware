@@ -1,4 +1,4 @@
-![example event parameter](https://github.com/LeoCBS/httpmiddleware/blob/add-http-methods/.github/workflows/makefile.yml/badge.svg?branch=main)
+![main badge](https://github.com/LeoCBS/httpmiddleware/actions/workflows/makefile.yml/badge.svg?branch=main)
 
 ## Why create this project?
 
