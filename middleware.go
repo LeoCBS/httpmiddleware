@@ -16,8 +16,21 @@ type Log interface {
 	Error(args ...interface{})
 }
 
-type Router interface {
+type Response struct {
+	Body       interface{}
+	StatusCode int
+	err        error
+	Headers    map[string]string
 }
+
+type Param struct {
+	Key   string
+	Value string
+}
+
+type Params []Param
+
+type routerHandlerFunc func(w http.ResponseWriter, r *http.Request, ps Params) Response
 
 type Middleware struct {
 	l      Log
@@ -38,30 +51,18 @@ func New(l Log) *Middleware {
 	}
 }
 
-type Response struct {
-	body       interface{}
-	statusCode int
-	err        error
-	headers    map[string]string
-}
-
-type Params httprouter.Params
-
-type routerHandlerFunc func(w http.ResponseWriter, r *http.Request, ps Params) Response
-
 func (m *Middleware) POST(path string, handler routerHandlerFunc) {
 	m.router.POST(path, m.handle(handler))
 }
 
 func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		httpRouterParams := convertParams(ps)
-		if badRequestResp := isInvalidURLParams(httpRouterParams); badRequestResp.statusCode != 0 {
+		if badRequestResp := isInvalidURLParams(ps); badRequestResp.StatusCode != 0 {
 			m.writeResponse(w, badRequestResp)
 			return
 		}
-		resp := next(w, r, httpRouterParams)
-		for k, v := range resp.headers {
+		resp := next(w, r, convertParams(ps))
+		for k, v := range resp.Headers {
 			w.Header().Set(k, v)
 		}
 		if resp.err != nil {
@@ -74,7 +75,7 @@ func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 				// Any error types we don't specifically look out for default
 				// to serving a HTTP 500
 				m.l.Warn("unexpected error on handle request / error = %v", e)
-				resp.body = getInternalServerErrorBody()
+				resp.Body = getInternalServerErrorBody()
 				m.writeResponse(w, resp)
 			}
 			return
@@ -84,24 +85,24 @@ func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 	}
 }
 
-func convertParams(customParams Params) httprouter.Params {
-	params := httprouter.Params{}
-	for k, v := range customParams {
-		params := append(params, httprouter.Param{
-			Key:   key,
-			Value: v,
+func convertParams(customParams httprouter.Params) Params {
+	params := []Param{}
+	for _, v := range customParams {
+		params = append(params, Param{
+			Key:   v.Key,
+			Value: v.Value,
 		})
 	}
 	return params
 
 }
 
-func isInvalidURLParams(ps Params) Response {
+func isInvalidURLParams(ps httprouter.Params) Response {
 	for _, p := range ps {
 		if p.Value == "" {
 			return Response{
-				statusCode: http.StatusBadRequest,
-				body: map[string]interface{}{
+				StatusCode: http.StatusBadRequest,
+				Body: map[string]interface{}{
 					"error": fmt.Sprintf("your URL must inform %s value", p.Key),
 				},
 			}
@@ -111,9 +112,9 @@ func isInvalidURLParams(ps Params) Response {
 }
 
 func (m *Middleware) writeResponse(w http.ResponseWriter, resp Response) {
-	w.WriteHeader(resp.statusCode)
-	if resp.body != nil {
-		err := json.NewEncoder(w).Encode(resp.body)
+	w.WriteHeader(resp.StatusCode)
+	if resp.Body != nil {
+		err := json.NewEncoder(w).Encode(resp.Body)
 		if err != nil {
 			m.l.Warn("error to encode msg / %v", err)
 		}
@@ -139,7 +140,7 @@ func (m *Middleware) writeClientResponse(
 	statusCode int,
 ) {
 	m.l.Warn("client error / error = %v", e)
-	resp.body = getClientErrorBody(e.Error())
-	resp.statusCode = statusCode
+	resp.Body = getClientErrorBody(e.Error())
+	resp.StatusCode = statusCode
 	m.writeResponse(w, resp)
 }

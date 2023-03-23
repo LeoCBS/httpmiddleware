@@ -4,31 +4,45 @@
 package httpmiddleware_test
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/LeoCBS/httpmiddleware"
+	"github.com/LeoCBS/httpmiddleware/test"
 	"github.com/sirupsen/logrus"
 )
 
 func TestNewMiddlewareWorks(t *testing.T) {
 	l := logrus.New()
 	md := httpmiddleware.New(l)
-	assertNotNil(t, md)
+	test.AssertNotNil(t, md)
 }
 
 func TestNewMiddlewareValidateURLParams(t *testing.T) {
 	l := logrus.New()
 	md := httpmiddleware.New(l)
-	assertNotNil(t, md)
-	// key/value URL pattern
-	md.POST("/name/:name", h.createField)
+	test.AssertNotNil(t, md)
 
-	fnHandlePOST := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {}
+	fnHandlePOST := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+		//TODO here you add your business logic, call some storage
+		//func, etc...
+		return httpmiddleware.Response{
+			StatusCode: http.StatusOK,
+		}
+	}
+	//register a simple route POST using key/value URL pattern
+	md.POST("/name/:name/age/:age", fnHandlePOST)
+	assertInvalidRequest(t, md)
 }
 
-func assertNotNil(t *testing.T, value interface{}) {
-	t.Helper()
-	if value == nil {
-		t.Error("value is nil")
-	}
+func assertInvalidRequest(t *testing.T, md *httpmiddleware.Middleware) {
+	req, err := http.NewRequest("POST", "/name//age/17", nil)
+	test.AssertNoError(t, err)
+
+	res := httptest.NewRecorder()
+	md.ServeHTTP(res, req)
+
+	test.AssertEqual(t, http.StatusBadRequest, res.Code)
+	test.AssertBodyContains(t, res.Body, "bla")
 }
