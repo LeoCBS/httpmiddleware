@@ -37,12 +37,14 @@ func TestNewMiddlewareValidateURLParams(t *testing.T) {
 }
 
 func assertInvalidRequest(t *testing.T, md *httpmiddleware.Middleware) {
-	req, err := http.NewRequest("POST", "/name//age/17", nil)
+	URLwithoutNameValue := "/name//age/17"
+	req, err := http.NewRequest("POST", URLwithoutNameValue, nil)
 	test.AssertNoError(t, err)
 
 	res := httptest.NewRecorder()
 	md.ServeHTTP(res, req)
 
 	test.AssertEqual(t, http.StatusBadRequest, res.Code)
-	test.AssertBodyContains(t, res.Body, "bla")
+	expectedResponseBody := `{"error":"your URL must inform name value"}`
+	test.AssertBodyContains(t, res.Body, expectedResponseBody)
 }
