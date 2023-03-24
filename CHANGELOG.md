@@ -1,4 +1,4 @@
 (unreleased)
 
- - Add HTTP parameters validation 
+ - Add URL parameters validation 
  - Add project bootstrap
