@@ -1,4 +1,4 @@
 (unreleased)
 
- - Add method POST 
+ - Add HTTP parameters validation 
  - Add project bootstrap
