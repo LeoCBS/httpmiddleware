@@ -12,7 +12,7 @@ This project is a middleware writting in Golang to simplify and avoid code dupli
 What this project try abstract:
 
  * HTTP routes declaration
- * Request parameter validations
+ * URL parameter validations
  * Error handler
  * Write responses
  * Gracefull shutdown
@@ -45,7 +45,7 @@ simple to define one new route:
 	md.POST("/name/:name/age/:age", fnHandlePOST)
 ```
 
-### Request parameter validation
+### URL parameter validation
 
 Another validation that is repeatedly (and duplicated) made when we are using key/value URL
 pattern is checked if one value key isn't empty. Here we have one example to how
