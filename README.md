@@ -12,7 +12,7 @@ This project is a middleware writting in Golang to simplify and avoid code dupli
 What this project try abstract:
 
  * HTTP routes declaration
- * Request validations
+ * Request parameter validations
  * Error handler
  * Write responses
  * Gracefull shutdown
@@ -44,6 +44,29 @@ simple to define one new route:
 	//register a simple route POST using key/value URL pattern
 	md.POST("/name/:name/age/:age", fnHandlePOST)
 ```
+
+### Request parameter validation
+
+Another validation that is repeatedly (and duplicated) made when we are using key/value URL
+pattern is checked if one value key isn't empty. Here we have one example to how
+send one empty value:
+
+Here we have one URL with two values/parameters:
+    
+    md.POST("/name/:name/age/:age", fnHandlePOST)
+
+Supose that your service send one request with this URL:
+
+    /name//age/37
+     
+
+Using this lib, you don't need check if your parameter is empty `(GetParamValue("name") != "")`,
+your server will automatic reply a Bad Request error informaing which parameter
+is wrong, like this:
+
+    401 Bad Request {"error":"your URL must inform name value"}
+
+Take a lot on unit test to check one full example :) 
 
 ## How use this middleware?
 

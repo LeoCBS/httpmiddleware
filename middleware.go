@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	clienterror "github.com/LeoCBS/httpmiddleware/errors"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -19,7 +18,6 @@ type Log interface {
 type Response struct {
 	Body       interface{}
 	StatusCode int
-	err        error
 	Headers    map[string]string
 }
 
@@ -61,40 +59,7 @@ func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 			m.writeResponse(w, badRequestResp)
 			return
 		}
-		resp := next(w, r, convertParams(ps))
-		for k, v := range resp.Headers {
-			w.Header().Set(k, v)
-		}
-		if resp.err != nil {
-			switch e := resp.err.(type) {
-			case clienterror.BadRequestError:
-				m.writeClientResponse(e, w, resp, http.StatusBadRequest)
-			case clienterror.NotFoundError:
-				m.writeClientResponse(e, w, resp, http.StatusNotFound)
-			default:
-				// Any error types we don't specifically look out for default
-				// to serving a HTTP 500
-				m.l.Warn("unexpected error on handle request / error = %v", e)
-				resp.Body = getInternalServerErrorBody()
-				m.writeResponse(w, resp)
-			}
-			return
-		}
-		m.writeResponse(w, resp)
-
 	}
-}
-
-func convertParams(customParams httprouter.Params) Params {
-	params := []Param{}
-	for _, v := range customParams {
-		params = append(params, Param{
-			Key:   v.Key,
-			Value: v.Value,
-		})
-	}
-	return params
-
 }
 
 func isInvalidURLParams(ps httprouter.Params) Response {
@@ -119,28 +84,4 @@ func (m *Middleware) writeResponse(w http.ResponseWriter, resp Response) {
 			m.l.Warn("error to encode msg / %v", err)
 		}
 	}
-}
-
-func getInternalServerErrorBody() map[string]interface{} {
-	return map[string]interface{}{
-		"error": http.StatusText(http.StatusInternalServerError),
-	}
-}
-
-func getClientErrorBody(errStr string) map[string]interface{} {
-	return map[string]interface{}{
-		"error": errStr,
-	}
-}
-
-func (m *Middleware) writeClientResponse(
-	e error,
-	w http.ResponseWriter,
-	resp Response,
-	statusCode int,
-) {
-	m.l.Warn("client error / error = %v", e)
-	resp.Body = getClientErrorBody(e.Error())
-	resp.StatusCode = statusCode
-	m.writeResponse(w, resp)
 }
