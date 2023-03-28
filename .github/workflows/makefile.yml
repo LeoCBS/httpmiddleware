@@ -1,4 +1,4 @@
-name: Makefile CI
+name: Tests CI
 
 on: [push]
 jobs:
@@ -9,5 +9,17 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Build imagedev
+      run: make imagedev
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
     - name: Run check
       run: make check
+    
+    - name: Run static check
+      run: make static-analysis
