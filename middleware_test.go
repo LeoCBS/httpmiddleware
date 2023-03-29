@@ -77,7 +77,6 @@ func TestMiddlewareParseURLParameters(t *testing.T) {
 	}
 	//register a simple route POST using key/value URL pattern
 	f.md.POST("/name/:name/age/:age", fnHandlePOST)
-	assertInvalidRequest(t, f.md)
 
 	nameParam := "leo"
 	ageParam := "17"
@@ -96,14 +95,32 @@ func TestMiddlewareParseURLParameters(t *testing.T) {
 func TestNewMiddlewareWriteResponseHeaders(t *testing.T) {
 	f := setUp(t)
 
+	headerKey := "Location"
+	headerValue := "/whatever/01234"
+	respHeaders := map[string]string{
+		headerKey: headerValue,
+	}
 	fnHandlePOST := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
 		//TODO here you add your business logic, call some storage
 		//func, etc...
 		return httpmiddleware.Response{
 			StatusCode: http.StatusOK,
+			Headers:    respHeaders,
 		}
 	}
 	//register a simple route POST using key/value URL pattern
-	f.md.POST("/name/:name/age/:age", fnHandlePOST)
-	assertInvalidRequest(t, f.md)
+	f.md.POST("/whatever", fnHandlePOST)
+
+	URL := "/whatever"
+	req, err := http.NewRequest("POST", URL, nil)
+	test.AssertNoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	f.md.ServeHTTP(recorder, req)
+	resp := recorder.Result()
+	test.AssertEqual(t, resp.StatusCode, http.StatusOK)
+	test.AssertEqual(t, resp.Header.Get(headerKey), headerValue)
 }
+
+//TODO add test to all HTTP methods
+//TODO check to call result in all tests
