@@ -82,3 +82,11 @@ Access unit tests to see how to use this middleware.
 To run unit tests:
 
     make check
+
+## Advanges to don't use default `http.Handler`
+
+To simplify HTTP router definition and get more features, we decide to use the lib
+[julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) instead
+default http.Handler, we recomend access this project on github to understand
+which more feature are avaliable to use like: router multi-domains and
+sub-domains, basic auth and others features. 

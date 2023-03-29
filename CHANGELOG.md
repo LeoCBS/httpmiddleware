@@ -1,4 +1,5 @@
 (unreleased)
 
- - Add URL parameters validation 
- - Add project bootstrap
+ - Add response headers behavior (@LeoCBS)
+ - Add URL parameters validation (@LeoCBS)
+ - Add project bootstrap (@LeoCBS)
