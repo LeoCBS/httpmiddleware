@@ -59,7 +59,24 @@ func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 			m.writeResponse(w, badRequestResp)
 			return
 		}
+		resp := next(w, r, convertParams(ps))
+		for k, v := range resp.Headers {
+			w.Header().Set(k, v)
+		}
+		m.writeResponse(w, resp)
 	}
+}
+
+func convertParams(customParams httprouter.Params) Params {
+	params := []Param{}
+	for _, v := range customParams {
+		params = append(params, Param{
+			Key:   v.Key,
+			Value: v.Value,
+		})
+	}
+	return params
+
 }
 
 func isInvalidURLParams(ps httprouter.Params) Response {
@@ -84,4 +101,13 @@ func (m *Middleware) writeResponse(w http.ResponseWriter, resp Response) {
 			m.l.Warn("error to encode msg / %v", err)
 		}
 	}
+}
+
+func (ps Params) ByName(name string) string {
+	for _, p := range ps {
+		if p.Key == name {
+			return p.Value
+		}
+	}
+	return ""
 }

@@ -13,6 +13,7 @@ What this project try abstract:
 
  * HTTP routes declaration
  * URL parameter validations
+ * Write response headers
  * Error handler
  * Write responses
  * Gracefull shutdown
@@ -68,6 +69,26 @@ is wrong, like this:
 
 Take a lot on unit test to check one full example :) 
 
+### Write response headers
+
+To write custom response headers just use atributte `Response.Headers` that
+middleware will write values on reponse.
+
+```
+	fnHandlePOST := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+	        headerKey := "Location"
+        	headerValue := "/whatever/01234"
+	        respHeaders := map[string]string{
+		    headerKey: headerValue,
+        	}
+		return httpmiddleware.Response{
+			StatusCode: http.StatusOK,
+			Headers:    respHeaders,
+		}
+	}
+```
+
+
 ## How use this middleware?
 
 TODO put here go get and how create one middleware
@@ -82,3 +103,11 @@ Access unit tests to see how to use this middleware.
 To run unit tests:
 
     make check
+
+## Advanges to don't use default `http.Handler`
+
+To simplify HTTP router definition and get more features, we decide to use the lib
+[julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) instead
+default http.Handler, we recomend access this project on github to understand
+which more feature are avaliable to use like: router multi-domains and
+sub-domains, basic auth and others features. 
