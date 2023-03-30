@@ -13,6 +13,7 @@ What this project try abstract:
 
  * HTTP routes declaration
  * URL parameter validations
+ * Write response headers
  * Error handler
  * Write responses
  * Gracefull shutdown
@@ -67,6 +68,26 @@ is wrong, like this:
     401 Bad Request {"error":"your URL must inform name value"}
 
 Take a lot on unit test to check one full example :) 
+
+### Write response headers
+
+To write custom response headers just use atributte `Response.Headers` that
+middleware will write values on reponse.
+
+```
+	fnHandlePOST := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+	        headerKey := "Location"
+        	headerValue := "/whatever/01234"
+	        respHeaders := map[string]string{
+		    headerKey: headerValue,
+        	}
+		return httpmiddleware.Response{
+			StatusCode: http.StatusOK,
+			Headers:    respHeaders,
+		}
+	}
+```
+
 
 ## How use this middleware?
 
