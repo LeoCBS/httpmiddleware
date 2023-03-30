@@ -1,35 +1,41 @@
 // Package errors has functions and structs to facilitade catch specifics
 // errors thougth your program.
 //
-// For example, use BadRequestError to sinalize a specific error to client
+// For example, use a BadRequest to sinalize a specific error to client
 package errors
+
+import "errors"
 
 type Error interface {
 	error
 	Status() int
 }
 
-type BadRequestError struct {
+type BadRequest struct {
 	Err error
 }
 
-type NotFoundError struct {
+type NotFound struct {
 	Err error
 }
 
-type InternalServerError struct {
+type InternalServer struct {
 	Err error
 }
 
 // Allows StatusError to satisfy the error interface.
-func (se BadRequestError) Error() string {
+func (se BadRequest) Error() string {
 	return se.Err.Error()
 }
 
-func (se NotFoundError) Error() string {
+func NewBadRequest(err string) BadRequest {
+	return BadRequest{Err: errors.New(err)}
+}
+
+func (se NotFound) Error() string {
 	return se.Err.Error()
 }
 
-func (se InternalServerError) Error() string {
+func (se InternalServer) Error() string {
 	return se.Err.Error()
 }
