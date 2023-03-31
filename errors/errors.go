@@ -19,23 +19,33 @@ type NotFound struct {
 	Err error
 }
 
-type InternalServer struct {
+type ServerError struct {
 	Err error
 }
 
-// Allows StatusError to satisfy the error interface.
+// Satisfy the error interface.
 func (se BadRequest) Error() string {
 	return se.Err.Error()
 }
 
-func NewBadRequest(err string) BadRequest {
+func NewBadRequest(err string) error {
 	return BadRequest{Err: errors.New(err)}
 }
 
+// Satisfy the error interface.
 func (se NotFound) Error() string {
 	return se.Err.Error()
 }
 
-func (se InternalServer) Error() string {
+func NewNotFound(err string) error {
+	return NotFound{Err: errors.New(err)}
+}
+
+// Satisfy the error interface.
+func (se ServerError) Error() string {
 	return se.Err.Error()
+}
+
+func NewServerError(err string) error {
+	return ServerError{Err: errors.New(err)}
 }

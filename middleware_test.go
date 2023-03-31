@@ -109,9 +109,9 @@ func TestNewMiddlewareWriteResponseHeaders(t *testing.T) {
 			Headers:    respHeaders,
 		}
 	}
-	f.md.POST("/whatever", fnHandlePOST)
+	URL := "/responseheaders"
+	f.md.POST(URL, fnHandlePOST)
 
-	URL := "/whatever"
 	req, err := http.NewRequest("POST", URL, nil)
 	test.AssertNoError(t, err)
 
@@ -122,29 +122,98 @@ func TestNewMiddlewareWriteResponseHeaders(t *testing.T) {
 	test.AssertEqual(t, resp.Header.Get(headerKey), headerValue)
 }
 
-func TestNewMiddlewareWriteCustomBadRequest(t *testing.T) {
-	f := setUp(t)
-
-	expectedErr := "your body must be one valid JSON"
-	fnHandle := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
-		// just returning a errors.BadRequest that middleware will
-		// write status code and body response
-		return httpmiddleware.Response{
-			Error: errors.NewBadRequest(expectedErr),
-		}
+func TestMiddlewareHandlingClientErrors(t *testing.T) {
+	type newErrorFn func(s string) error
+	type tcase struct {
+		tName              string
+		expectedErrMsg     string
+		errFunc            newErrorFn
+		expectedStatusCode int
 	}
-	f.md.GET("/whatever", fnHandle)
 
-	URL := "/whatever"
-	req, err := http.NewRequest(http.MethodGet, URL, nil)
-	test.AssertNoError(t, err)
+	cases := []tcase{
+		tcase{
+			tName:              "handlingBadRequest",
+			expectedErrMsg:     "your body must be one valid JSON",
+			expectedStatusCode: http.StatusBadRequest,
+			errFunc:            errors.NewBadRequest,
+		},
+		tcase{
+			tName:              "handlingNotFound",
+			expectedErrMsg:     "record not found",
+			expectedStatusCode: http.StatusNotFound,
+			errFunc:            errors.NewNotFound,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.tName, func(t *testing.T) {
+			f := setUp(t)
+			fnHandle := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+				// just returning a github.com/LeoCBS/httpmiddleware/errors that middleware will
+				// write status code and body response
+				return httpmiddleware.Response{
+					Error: c.errFunc(c.expectedErrMsg),
+				}
+			}
+			URL := "/clienterrorhandling"
+			f.md.GET(URL, fnHandle)
 
-	recorder := httptest.NewRecorder()
-	f.md.ServeHTTP(recorder, req)
-	resp := recorder.Result()
-	test.AssertEqual(t, resp.StatusCode, http.StatusBadRequest)
-	expectedResponseBody := fmt.Sprintf(`{"error":"%s"}`, expectedErr)
-	test.AssertBodyContains(t, resp.Body, expectedResponseBody)
+			req, err := http.NewRequest(http.MethodGet, URL, nil)
+			test.AssertNoError(t, err)
+
+			recorder := httptest.NewRecorder()
+			f.md.ServeHTTP(recorder, req)
+			resp := recorder.Result()
+			test.AssertEqual(t, resp.StatusCode, c.expectedStatusCode)
+			expectedResponseBody := fmt.Sprintf(`{"error":"%s"}`, c.expectedErrMsg)
+			test.AssertBodyContains(t, resp.Body, expectedResponseBody)
+
+		})
+	}
+}
+
+func TestMiddlewareHandlingInternalServerErrors(t *testing.T) {
+	type newErrorFn func(s string) error
+	type tcase struct {
+		tName              string
+		expectedErrMsg     string
+		errFunc            newErrorFn
+		expectedStatusCode int
+	}
+
+	cases := []tcase{
+		tcase{
+			tName:              "handlingInternalServerError",
+			expectedErrMsg:     "Internal Server Error",
+			expectedStatusCode: http.StatusInternalServerError,
+			errFunc:            errors.NewBadRequest,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.tName, func(t *testing.T) {
+			f := setUp(t)
+			fnHandle := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+				// just returning a github.com/LeoCBS/httpmiddleware/errors that middleware will
+				// write status code and body response
+				return httpmiddleware.Response{
+					Error: errors.NewServerError("msg used just on log"),
+				}
+			}
+			URL := "/internalerrorhandling"
+			f.md.GET(URL, fnHandle)
+
+			req, err := http.NewRequest(http.MethodGet, URL, nil)
+			test.AssertNoError(t, err)
+
+			recorder := httptest.NewRecorder()
+			f.md.ServeHTTP(recorder, req)
+			resp := recorder.Result()
+			test.AssertEqual(t, resp.StatusCode, c.expectedStatusCode)
+			expectedResponseBody := fmt.Sprintf(`{"error":"%s"}`, c.expectedErrMsg)
+			test.AssertBodyContains(t, resp.Body, expectedResponseBody)
+
+		})
+	}
 }
 
 //TODO add test to all HTTP methods / check method not allowed

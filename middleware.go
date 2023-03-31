@@ -89,6 +89,7 @@ func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 				// to serving a HTTP 500
 				m.l.Warn("unexpected error on handle request / error = %v", e)
 				resp.Body = getInternalServerErrorBody()
+				resp.StatusCode = http.StatusInternalServerError
 				m.writeResponse(w, resp)
 			}
 			return
