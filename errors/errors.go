@@ -6,11 +6,6 @@ package errors
 
 import "errors"
 
-type Error interface {
-	error
-	Status() int
-}
-
 type BadRequest struct {
 	Err error
 }
@@ -19,7 +14,7 @@ type NotFound struct {
 	Err error
 }
 
-type ServerError struct {
+type InternalServerError struct {
 	Err error
 }
 
@@ -42,10 +37,14 @@ func NewNotFound(err string) error {
 }
 
 // Satisfy the error interface.
-func (se ServerError) Error() string {
+func (se InternalServerError) Error() string {
 	return se.Err.Error()
 }
 
-func NewServerError(err string) error {
-	return ServerError{Err: errors.New(err)}
+func NewInternalServerError(err string) error {
+	return InternalServerError{Err: errors.New(err)}
+}
+
+func New(err string) error {
+	return errors.New(err)
 }

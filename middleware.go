@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	clienterror "github.com/LeoCBS/httpmiddleware/errors"
+	errors "github.com/LeoCBS/httpmiddleware/errors"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -80,9 +80,9 @@ func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 		}
 		if resp.Error != nil {
 			switch e := resp.Error.(type) {
-			case clienterror.BadRequest:
+			case errors.BadRequest:
 				m.writeClientResponse(e, w, resp, http.StatusBadRequest)
-			case clienterror.NotFound:
+			case errors.NotFound:
 				m.writeClientResponse(e, w, resp, http.StatusNotFound)
 			default:
 				// Any error types we don't specifically look out for default

@@ -176,6 +176,7 @@ func TestMiddlewareHandlingInternalServerErrors(t *testing.T) {
 	type newErrorFn func(s string) error
 	type tcase struct {
 		tName              string
+		logMsg             string
 		expectedErrMsg     string
 		errFunc            newErrorFn
 		expectedStatusCode int
@@ -185,8 +186,16 @@ func TestMiddlewareHandlingInternalServerErrors(t *testing.T) {
 		tcase{
 			tName:              "handlingInternalServerError",
 			expectedErrMsg:     "Internal Server Error",
+			logMsg:             "msg used just on log",
 			expectedStatusCode: http.StatusInternalServerError,
-			errFunc:            errors.NewBadRequest,
+			errFunc:            errors.NewInternalServerError,
+		},
+		tcase{
+			tName:              "handlingGolangError",
+			expectedErrMsg:     "Internal Server Error",
+			logMsg:             "msg used just on log / error on business logic",
+			expectedStatusCode: http.StatusInternalServerError,
+			errFunc:            errors.New,
 		},
 	}
 	for _, c := range cases {
@@ -196,7 +205,7 @@ func TestMiddlewareHandlingInternalServerErrors(t *testing.T) {
 				// just returning a github.com/LeoCBS/httpmiddleware/errors that middleware will
 				// write status code and body response
 				return httpmiddleware.Response{
-					Error: errors.NewServerError("msg used just on log"),
+					Error: c.errFunc(c.logMsg),
 				}
 			}
 			URL := "/internalerrorhandling"
@@ -211,7 +220,6 @@ func TestMiddlewareHandlingInternalServerErrors(t *testing.T) {
 			test.AssertEqual(t, resp.StatusCode, c.expectedStatusCode)
 			expectedResponseBody := fmt.Sprintf(`{"error":"%s"}`, c.expectedErrMsg)
 			test.AssertBodyContains(t, resp.Body, expectedResponseBody)
-
 		})
 	}
 }
