@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/LeoCBS/httpmiddleware"
+	"github.com/LeoCBS/httpmiddleware/errors"
 	"github.com/LeoCBS/httpmiddleware/test"
 	"github.com/sirupsen/logrus"
 )
@@ -108,10 +109,9 @@ func TestNewMiddlewareWriteResponseHeaders(t *testing.T) {
 			Headers:    respHeaders,
 		}
 	}
-	//register a simple route POST using key/value URL pattern
-	f.md.POST("/whatever", fnHandlePOST)
+	URL := "/responseheaders"
+	f.md.POST(URL, fnHandlePOST)
 
-	URL := "/whatever"
 	req, err := http.NewRequest("POST", URL, nil)
 	test.AssertNoError(t, err)
 
@@ -122,5 +122,107 @@ func TestNewMiddlewareWriteResponseHeaders(t *testing.T) {
 	test.AssertEqual(t, resp.Header.Get(headerKey), headerValue)
 }
 
-//TODO add test to all HTTP methods
+func TestMiddlewareHandlingClientErrors(t *testing.T) {
+	type newErrorFn func(s string) error
+	type tcase struct {
+		tName              string
+		expectedErrMsg     string
+		errFunc            newErrorFn
+		expectedStatusCode int
+	}
+
+	cases := []tcase{
+		tcase{
+			tName:              "handlingBadRequest",
+			expectedErrMsg:     "your body must be one valid JSON",
+			expectedStatusCode: http.StatusBadRequest,
+			errFunc:            errors.NewBadRequest,
+		},
+		tcase{
+			tName:              "handlingNotFound",
+			expectedErrMsg:     "record not found",
+			expectedStatusCode: http.StatusNotFound,
+			errFunc:            errors.NewNotFound,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.tName, func(t *testing.T) {
+			f := setUp(t)
+			fnHandle := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+				// just returning a github.com/LeoCBS/httpmiddleware/errors that middleware will
+				// write status code and body response
+				return httpmiddleware.Response{
+					Error: c.errFunc(c.expectedErrMsg),
+				}
+			}
+			URL := "/clienterrorhandling"
+			f.md.GET(URL, fnHandle)
+
+			req, err := http.NewRequest(http.MethodGet, URL, nil)
+			test.AssertNoError(t, err)
+
+			recorder := httptest.NewRecorder()
+			f.md.ServeHTTP(recorder, req)
+			resp := recorder.Result()
+			test.AssertEqual(t, resp.StatusCode, c.expectedStatusCode)
+			expectedResponseBody := fmt.Sprintf(`{"error":"%s"}`, c.expectedErrMsg)
+			test.AssertBodyContains(t, resp.Body, expectedResponseBody)
+
+		})
+	}
+}
+
+func TestMiddlewareHandlingInternalServerErrors(t *testing.T) {
+	type newErrorFn func(s string) error
+	type tcase struct {
+		tName              string
+		logMsg             string
+		expectedErrMsg     string
+		errFunc            newErrorFn
+		expectedStatusCode int
+	}
+
+	cases := []tcase{
+		tcase{
+			tName:              "handlingInternalServerError",
+			expectedErrMsg:     "Internal Server Error",
+			logMsg:             "msg used just on log",
+			expectedStatusCode: http.StatusInternalServerError,
+			errFunc:            errors.NewInternalServerError,
+		},
+		tcase{
+			tName:              "handlingGolangError",
+			expectedErrMsg:     "Internal Server Error",
+			logMsg:             "msg used just on log / error on business logic",
+			expectedStatusCode: http.StatusInternalServerError,
+			errFunc:            errors.New,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.tName, func(t *testing.T) {
+			f := setUp(t)
+			fnHandle := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+				// just returning a github.com/LeoCBS/httpmiddleware/errors that middleware will
+				// write status code and body response
+				return httpmiddleware.Response{
+					Error: c.errFunc(c.logMsg),
+				}
+			}
+			URL := "/internalerrorhandling"
+			f.md.GET(URL, fnHandle)
+
+			req, err := http.NewRequest(http.MethodGet, URL, nil)
+			test.AssertNoError(t, err)
+
+			recorder := httptest.NewRecorder()
+			f.md.ServeHTTP(recorder, req)
+			resp := recorder.Result()
+			test.AssertEqual(t, resp.StatusCode, c.expectedStatusCode)
+			expectedResponseBody := fmt.Sprintf(`{"error":"%s"}`, c.expectedErrMsg)
+			test.AssertBodyContains(t, resp.Body, expectedResponseBody)
+		})
+	}
+}
+
+//TODO add test to all HTTP methods / check method not allowed
 //TODO check to call result in all tests

@@ -14,7 +14,7 @@ What this project try abstract:
  * HTTP routes declaration
  * URL parameter validations
  * Write response headers
- * Error handler
+ * Error handling
  * Write responses
  * Gracefull shutdown
 
@@ -88,6 +88,35 @@ middleware will write values on reponse.
 	}
 ```
 
+### Error Handling
+
+Another common behavior that you always must to do on a HTTP microservices is
+handling error. The lack of a standard for handling errors leads to confusion
+and code duplication. Handling error on middleware layer we simplify source code and
+focused only on the business logic.
+
+When you use `github.com/LeoCBS/httpmiddleware/errors` inside your core business,
+middleware will take care of handling the error properly, writing the correct HTTP Status Code
+and right response body for the client.
+
+
+Write a Bad Request error to the client:
+
+```
+fnHandle := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+    return httpmiddleware.Response{
+        ror: errors.NewBadRequest("your body must be a valid JSON"),
+    }
+}
+URL := "/clienterrorhandling"
+f.md.GET(URL, fnHandle)
+```
+
+Returning a `errors.NewBadRequest` middleware will handling error and will
+write HTTP Status Code 404 and write on response body your custom message to
+the client `{"error":"your body must be a valid JSON"}`
+
+Access middleware_test.go to check more examples to how use all custom errors.
 
 ## How use this middleware?
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	errors "github.com/LeoCBS/httpmiddleware/errors"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -19,6 +20,7 @@ type Response struct {
 	Body       interface{}
 	StatusCode int
 	Headers    map[string]string
+	Error      error
 }
 
 type Param struct {
@@ -33,6 +35,15 @@ type routerHandlerFunc func(w http.ResponseWriter, r *http.Request, ps Params) R
 type Middleware struct {
 	l      Log
 	router *httprouter.Router
+}
+
+func (ps Params) ByName(name string) string {
+	for _, p := range ps {
+		if p.Key == name {
+			return p.Value
+		}
+	}
+	return ""
 }
 
 // ServeHTTP using httprouter implementation instead default golang
@@ -53,6 +64,10 @@ func (m *Middleware) POST(path string, handler routerHandlerFunc) {
 	m.router.POST(path, m.handle(handler))
 }
 
+func (m *Middleware) GET(path string, handler routerHandlerFunc) {
+	m.router.GET(path, m.handle(handler))
+}
+
 func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		if badRequestResp := isInvalidURLParams(ps); badRequestResp.StatusCode != 0 {
@@ -62,6 +77,22 @@ func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 		resp := next(w, r, convertParams(ps))
 		for k, v := range resp.Headers {
 			w.Header().Set(k, v)
+		}
+		if resp.Error != nil {
+			switch e := resp.Error.(type) {
+			case errors.BadRequest:
+				m.writeClientResponse(e, w, resp, http.StatusBadRequest)
+			case errors.NotFound:
+				m.writeClientResponse(e, w, resp, http.StatusNotFound)
+			default:
+				// Any error types we don't specifically look out for default
+				// to serving a HTTP 500
+				m.l.Warn("unexpected error on handle request / error = %v", e)
+				resp.Body = getInternalServerErrorBody()
+				resp.StatusCode = http.StatusInternalServerError
+				m.writeResponse(w, resp)
+			}
+			return
 		}
 		m.writeResponse(w, resp)
 	}
@@ -103,11 +134,26 @@ func (m *Middleware) writeResponse(w http.ResponseWriter, resp Response) {
 	}
 }
 
-func (ps Params) ByName(name string) string {
-	for _, p := range ps {
-		if p.Key == name {
-			return p.Value
-		}
+func getInternalServerErrorBody() map[string]interface{} {
+	return map[string]interface{}{
+		"error": http.StatusText(http.StatusInternalServerError),
 	}
-	return ""
+}
+
+func getClientErrorBody(errStr string) map[string]interface{} {
+	return map[string]interface{}{
+		"error": errStr,
+	}
+}
+
+func (m *Middleware) writeClientResponse(
+	e error,
+	w http.ResponseWriter,
+	resp Response,
+	statusCode int,
+) {
+	m.l.Warn("client error / error = %v", e)
+	resp.Body = getClientErrorBody(e.Error())
+	resp.StatusCode = statusCode
+	m.writeResponse(w, resp)
 }
