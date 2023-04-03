@@ -92,7 +92,7 @@ middleware will write values on reponse.
 
 Another common behavior that you always must to do on a HTTP microservices is
 handling error. The lack of a standard for handling errors leads to confusion
-and code duplication. Handling error on middleware layer we simplify code and
+and code duplication. Handling error on middleware layer we simplify source code and
 focused only on the business logic.
 
 When you use `github.com/LeoCBS/httpmiddleware/errors` inside your core business,
