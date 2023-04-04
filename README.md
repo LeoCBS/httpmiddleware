@@ -16,7 +16,7 @@ What this project try abstract:
  * Write response headers
  * Error handling
  * Write responses
- * Gracefull shutdown
+ * Gracefull shutdown (TODO)
 
 ### HTTP routes declaration
 
@@ -118,10 +118,80 @@ the client `{"error":"your body must be a valid JSON"}`
 
 Access middleware_test.go to check more examples to how use all custom errors.
 
+### Write JSON responses
+
+In most cases we want write a JSON in our response body to the client, so we
+always write and duplicate code between microservices that encode a struct and check
+if some errors happens in this process. This way this middleware already convert your
+struct into JSON and write it on response body and you just need return
+a `httpmiddleware.Body` like code below.
+
+```
+	handleFn := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+	    type person struct {
+		Name string `json:"name"`
+            }
+	    record := person{Name: "leo"}
+	    return httpmiddleware.Response{
+	        StatusCode: http.StatusOK,
+		Body:       expectedBody,
+	    }
+	}
+```
+
 ## How use this middleware?
 
-TODO put here go get and how create one middleware
- 
+Here we have a simple application that start a HTTP Server on port 8080 and
+handling a GET and POST on path `/name/:name`. Pay attention how few lines of code
+are needed to write the handlers.
+
+```
+package main
+
+import (
+	"net/http"
+
+	"github.com/LeoCBS/httpmiddleware"
+	"github.com/sirupsen/logrus"
+)
+
+type user struct {
+	Login string `json:"login"`
+}
+
+func main() {
+	l := logrus.New()
+	md := httpmiddleware.New(l)
+	md.POST("/name/:name", createUser)
+	md.GET("/name/:name", getUser)
+
+	s := &http.Server{
+		Addr:    ":8080",
+		Handler: md,
+	}
+	panic(s.ListenAndServe())
+}
+
+func createUser(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+	return httpmiddleware.Response{
+		StatusCode: http.StatusCreated,
+		Body:       user{Login: ps.ByName("name")},
+	}
+}
+
+func getUser(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+	return httpmiddleware.Response{
+		StatusCode: http.StatusCreated,
+		Body:       user{Login: ps.ByName("name")},
+	}
+}
+```
+
+Running a CURL to check:
+
+    curl -X POST "http://localhost:8080/name/leonardo"
+    {"login":"leonardo"}
+
 
 ## More Examples
 

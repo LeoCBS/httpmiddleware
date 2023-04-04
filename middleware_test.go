@@ -325,5 +325,6 @@ func TestNewMiddlewareWriteResponseHeadersAndResponseBody(t *testing.T) {
 	resp := recorder.Result()
 	test.AssertEqual(t, resp.StatusCode, http.StatusOK)
 	test.AssertEqual(t, resp.Header.Get(headerKey), headerValue)
+	test.AssertEqual(t, resp.Header.Get("Content-Type"), "application/json")
 	test.AssertBodyContainsStruct(t, resp.Body, expectedBody)
 }

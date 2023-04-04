@@ -110,6 +110,10 @@ func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 	}
 }
 
+func appendContentTypeJSON(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+}
+
 func convertParams(customParams httprouter.Params) Params {
 	params := []Param{}
 	for _, v := range customParams {
@@ -137,6 +141,7 @@ func isInvalidURLParams(ps httprouter.Params) Response {
 }
 
 func (m *Middleware) writeResponse(w http.ResponseWriter, resp Response) {
+	appendContentTypeJSON(w)
 	w.WriteHeader(resp.StatusCode)
 	if resp.Body != nil {
 		err := json.NewEncoder(w).Encode(resp.Body)
@@ -164,6 +169,7 @@ func (m *Middleware) writeClientResponse(
 	resp Response,
 	statusCode int,
 ) {
+	appendContentTypeJSON(w)
 	m.l.Warn("client error / error = %v", e)
 	resp.Body = getClientErrorBody(e.Error())
 	resp.StatusCode = statusCode
