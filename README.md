@@ -113,7 +113,7 @@ f.md.GET(URL, fnHandle)
 ```
 
 Returning a `errors.NewBadRequest` middleware will handling error and will
-write HTTP Status Code 404 and write on response body your custom message to
+write HTTP Status Code 400 and write on response body your custom message to
 the client `{"error":"your body must be a valid JSON"}`
 
 Access middleware_test.go to check more examples to how use all custom errors.
