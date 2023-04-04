@@ -54,12 +54,13 @@ func assertInvalidRequest(t *testing.T, md *httpmiddleware.Middleware) {
 	req, err := http.NewRequest("POST", URLwithoutNameValue, nil)
 	test.AssertNoError(t, err)
 
-	res := httptest.NewRecorder()
-	md.ServeHTTP(res, req)
+	recorder := httptest.NewRecorder()
+	md.ServeHTTP(recorder, req)
+	resp := recorder.Result()
 
-	test.AssertEqual(t, http.StatusBadRequest, res.Code)
+	test.AssertEqual(t, http.StatusBadRequest, resp.StatusCode)
 	expectedResponseBody := `{"error":"your URL must inform name value"}`
-	test.AssertBodyContains(t, res.Body, expectedResponseBody)
+	test.AssertBodyContains(t, resp.Body, expectedResponseBody)
 }
 
 func TestMiddlewareParseURLParameters(t *testing.T) {
@@ -85,10 +86,11 @@ func TestMiddlewareParseURLParameters(t *testing.T) {
 	req, err := http.NewRequest("POST", URL, nil)
 	test.AssertNoError(t, err)
 
-	res := httptest.NewRecorder()
-	f.md.ServeHTTP(res, req)
+	recorder := httptest.NewRecorder()
+	f.md.ServeHTTP(recorder, req)
+	resp := recorder.Result()
 
-	test.AssertEqual(t, http.StatusOK, res.Code)
+	test.AssertEqual(t, http.StatusOK, resp.StatusCode)
 	test.AssertEqual(t, receivedNameValue, nameParam)
 	test.AssertEqual(t, receivedAgeValue, ageParam)
 }
@@ -224,5 +226,105 @@ func TestMiddlewareHandlingInternalServerErrors(t *testing.T) {
 	}
 }
 
-//TODO add test to all HTTP methods / check method not allowed
-//TODO check to call result in all tests
+func TestMiddlewareHandlingAllHTTPMethods(t *testing.T) {
+	type tcase struct {
+		tName              string
+		httpMethod         string
+		expectedStatusCode int
+	}
+
+	cases := []tcase{
+		tcase{
+			tName:              "handlingGET",
+			httpMethod:         http.MethodGet,
+			expectedStatusCode: http.StatusOK,
+		},
+		tcase{
+			tName:              "handlingPOST",
+			httpMethod:         http.MethodPost,
+			expectedStatusCode: http.StatusOK,
+		},
+		tcase{
+			tName:              "handlingPUT",
+			httpMethod:         http.MethodPut,
+			expectedStatusCode: http.StatusOK,
+		},
+		tcase{
+			tName:              "handlingDELETE",
+			httpMethod:         http.MethodGet,
+			expectedStatusCode: http.StatusOK,
+		},
+		tcase{
+			tName:              "handlingOPTIONS",
+			httpMethod:         http.MethodOptions,
+			expectedStatusCode: http.StatusOK,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.tName, func(t *testing.T) {
+			f := setUp(t)
+			fnHandle := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+				return httpmiddleware.Response{
+					StatusCode: http.StatusOK,
+				}
+			}
+			URL := "/handlingwhatever"
+			switch method := c.httpMethod; method {
+			case http.MethodGet:
+				f.md.GET(URL, fnHandle)
+			case http.MethodPost:
+				f.md.POST(URL, fnHandle)
+			case http.MethodPut:
+				f.md.PUT(URL, fnHandle)
+			case http.MethodDelete:
+				f.md.DELETE(URL, fnHandle)
+			case http.MethodOptions:
+				f.md.OPTIONS(URL, fnHandle)
+			}
+
+			req, err := http.NewRequest(c.httpMethod, URL, nil)
+			test.AssertNoError(t, err)
+
+			recorder := httptest.NewRecorder()
+			f.md.ServeHTTP(recorder, req)
+			resp := recorder.Result()
+			test.AssertEqual(t, resp.StatusCode, c.expectedStatusCode)
+		})
+	}
+}
+
+func TestNewMiddlewareWriteResponseHeadersAndResponseBody(t *testing.T) {
+	f := setUp(t)
+
+	headerKey := "Location"
+	headerValue := "/whatever/01234"
+	respHeaders := map[string]string{
+		headerKey: headerValue,
+	}
+	type myBusiness struct {
+		Name string `json:"name"`
+	}
+	expectedBody := myBusiness{Name: "leo"}
+	handleFn := func(w http.ResponseWriter, r *http.Request, ps httpmiddleware.Params) httpmiddleware.Response {
+		//TODO here you add your business logic, call some storage
+		//func, etc...
+		return httpmiddleware.Response{
+			StatusCode: http.StatusOK,
+			Headers:    respHeaders,
+			Body:       expectedBody,
+		}
+	}
+	URL := "/success"
+	f.md.GET(URL, handleFn)
+
+	req, err := http.NewRequest(http.MethodGet, URL, nil)
+	test.AssertNoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	f.md.ServeHTTP(recorder, req)
+	resp := recorder.Result()
+	test.AssertEqual(t, resp.StatusCode, http.StatusOK)
+	test.AssertEqual(t, resp.Header.Get(headerKey), headerValue)
+	test.AssertEqual(t, resp.Header.Get("Content-Type"), "application/json")
+	test.AssertBodyContainsStruct(t, resp.Body, expectedBody)
+}

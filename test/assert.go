@@ -2,6 +2,7 @@
 package test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -42,6 +43,23 @@ func AssertBodyContains(
 		t,
 		string(body),
 		expectedMsg,
+	)
+}
+
+func AssertBodyContainsStruct(
+	t *testing.T,
+	bodyReader io.Reader,
+	expectedMsg interface{},
+) {
+	t.Helper()
+	body, err := io.ReadAll(bodyReader)
+	AssertNoError(t, err)
+	b, err := json.Marshal(expectedMsg)
+	AssertNoError(t, err)
+	AssertContains(
+		t,
+		string(body),
+		string(b),
 	)
 }
 
