@@ -68,6 +68,18 @@ func (m *Middleware) GET(path string, handler routerHandlerFunc) {
 	m.router.GET(path, m.handle(handler))
 }
 
+func (m *Middleware) PUT(path string, handler routerHandlerFunc) {
+	m.router.PUT(path, m.handle(handler))
+}
+
+func (m *Middleware) DELETE(path string, handler routerHandlerFunc) {
+	m.router.DELETE(path, m.handle(handler))
+}
+
+func (m *Middleware) OPTIONS(path string, handler routerHandlerFunc) {
+	m.router.OPTIONS(path, m.handle(handler))
+}
+
 func (m *Middleware) handle(next routerHandlerFunc) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		if badRequestResp := isInvalidURLParams(ps); badRequestResp.StatusCode != 0 {
