@@ -1,5 +1,5 @@
 version ?= latest
-IMGDEV = leocbs/httpmiddleware:$(VERSION)
+IMGDEV = leocbs/httpmiddleware:$(version)
 RUN=docker run --rm $(IMGDEV)
 RUNTI=docker run -ti --rm $(IMGDEV)
 cov=coverage.out
