@@ -1,4 +1,4 @@
-VERSION ?= latest
+version ?= latest
 IMGDEV = leocbs/httpmiddleware:$(VERSION)
 RUN=docker run --rm $(IMGDEV)
 RUNTI=docker run -ti --rm $(IMGDEV)
@@ -9,8 +9,8 @@ imagedev:
 	docker build --target devimage . -t $(IMGDEV)
 
 release:
-	git tag -a $(VERSION) -m "Generated release "$(VERSION)
-	git push origin $(VERSION)
+	git tag -a $(version) -m "Generated release "$(version)
+	git push origin $(version)
 
 check: imagedev
 	$(RUN) go test -tags=unit -timeout 60s -race -coverprofile=$(cov) ./...
